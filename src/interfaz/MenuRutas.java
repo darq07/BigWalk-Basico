@@ -8,7 +8,7 @@ public class MenuRutas {
     public MenuRutas(Consola consola, GestorRutas gestor) { this.consola = consola; this.gestor = gestor; }
     public void ejecutar() {
         while (!consola.estaCerrada()) {
-            System.out.println("\nMÓDULO 1 - RUTAS Y TRAMOS\n1. Registrar ruta\n2. Listar rutas\n3. Gestionar tramos\n4. Calcular distancia total\n0. Volver");
+            System.out.println("\nMÓDULO 1 - RUTAS Y TRAMOS\n1. Registrar borrador de ruta\n2. Listar rutas\n3. Gestionar tramos\n4. Calcular distancia total\n5. Confirmar itinerario completo\n0. Volver");
             Integer opcion = consola.entero("Opción");
             if (opcion == null) { continue; }
             if (opcion == 0) { return; }
@@ -16,6 +16,13 @@ public class MenuRutas {
             else if (opcion == 2) { listarRutas(); }
             else if (opcion == 3) { Ruta ruta = elegirRuta(); if (ruta != null) { gestionar(ruta); } }
             else if (opcion == 4) { distancia(); }
+            else if (opcion == 5) {
+                Ruta ruta = elegirRuta();
+                if (ruta != null) {
+                    if (gestor.confirmarRuta(ruta.getId())) { consola.exito("Itinerario confirmado."); }
+                    else { consola.error(gestor.getError()); }
+                }
+            }
             else { consola.error("Opción inválida."); }
         }
     }
@@ -34,7 +41,7 @@ public class MenuRutas {
     public void listarRutas() {
         if (gestor.getRutas().isEmpty()) { System.out.println("No hay rutas registradas."); }
         for (Ruta ruta : gestor.getRutas()) {
-            System.out.println("ID " + ruta.getId() + " | " + ruta.getNombre() + " | " + ruta.getOrigen() + " -> " + ruta.getDestino() + " | Tramos: " + ruta.getTramos().size());
+            System.out.println("ID " + ruta.getId() + " | " + ruta.getNombre() + " | " + ruta.getOrigen() + " -> " + ruta.getDestino() + " | Tramos: " + ruta.getTramos().size() + " | " + (ruta.estaConfirmada() ? "CONFIRMADA" : "BORRADOR: complete y confirme con opción 5"));
         }
     }
     public Ruta elegirRuta() {

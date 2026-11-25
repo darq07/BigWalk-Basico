@@ -3,6 +3,9 @@ import java.util.ArrayList;
 
 public class Ruta {
     private int id;
+    private boolean confirmada;
+    public boolean estaConfirmada() { return confirmada; }
+    public void confirmar() { confirmada = true; }
     private String nombre;
     private Lugar origen;
     private Lugar destino;

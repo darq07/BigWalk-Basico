@@ -9,6 +9,29 @@ public class GestorRutas extends GestorBase {
     private int siguienteTramo = 1;
 
     public ArrayList<Ruta> getRutas() { return new ArrayList<Ruta>(rutas); }
+    // Los borradores pueden compartir prefijos. Solo se comparan recorridos completos.
+    private boolean validarItinerario(Ruta ruta, ArrayList<Tramo> propuesta) {
+        if (propuesta.isEmpty()) { setError("El itinerario debe tener al menos un tramo."); return false; }
+        for (Ruta otra : rutas) {
+            if (otra == ruta || !otra.estaConfirmada()) { continue; }
+            if (!Validador.normalizar(ruta.getOrigen().getNombre()).equals(Validador.normalizar(otra.getOrigen().getNombre()))
+                    || !Validador.normalizar(ruta.getDestino().getNombre()).equals(Validador.normalizar(otra.getDestino().getNombre()))) { continue; }
+            ArrayList<Tramo> existentes = otra.getTramos();
+            boolean iguales = propuesta.size() == existentes.size();
+            for (int i = 0; iguales && i < propuesta.size(); i++) {
+                iguales = Validador.normalizar(propuesta.get(i).getNombre()).equals(Validador.normalizar(existentes.get(i).getNombre()));
+            }
+            if (iguales) { setError("Itinerario duplicado de la ruta " + otra.getId() + ". Revise los tramos y su orden."); return false; }
+        }
+        return true;
+    }
+    public boolean confirmarRuta(int idRuta) {
+        Ruta ruta = buscarRuta(idRuta);
+        if (ruta == null) { return false; }
+        if (!validarItinerario(ruta, ruta.getTramos())) { return false; }
+        ruta.confirmar();
+        return true;
+    }
     private Lugar buscarLugar(String nombre) {
         for (Lugar lugar : lugares) {
             if (Validador.normalizar(lugar.getNombre()).equals(Validador.normalizar(nombre))) { return lugar; }
@@ -70,6 +93,9 @@ public class GestorRutas extends GestorBase {
         Ruta ruta = buscarRuta(idRuta);
         if (ruta == null || !validarTramo(ruta, -1, nombre, orden, distancia, ruta.getTramos().size() + 1)) { return null; }
         Tramo tramo = new Tramo(siguienteTramo, nombre.trim(), orden, distancia);
+        ArrayList<Tramo> propuesta = ruta.getTramos();
+        propuesta.add(orden - 1, tramo);
+        if (ruta.estaConfirmada() && !validarItinerario(ruta, propuesta)) { return null; }
         siguienteTramo++;
         ruta.agregarTramo(tramo, orden);
         return tramo;
@@ -79,6 +105,10 @@ public class GestorRutas extends GestorBase {
         if (tramo == null) { return false; }
         Ruta ruta = buscarRuta(idRuta);
         if (!validarTramo(ruta, idTramo, nombre, orden, distancia, ruta.getTramos().size())) { return false; }
+        ArrayList<Tramo> propuesta = ruta.getTramos();
+        propuesta.remove(tramo);
+        propuesta.add(orden - 1, new Tramo(idTramo, nombre.trim(), orden, distancia));
+        if (ruta.estaConfirmada() && !validarItinerario(ruta, propuesta)) { return false; }
         tramo.setNombre(nombre.trim());
         tramo.setDistancia(distancia);
         ruta.moverTramo(tramo, orden);
@@ -88,7 +118,11 @@ public class GestorRutas extends GestorBase {
         Tramo tramo = buscarTramo(idRuta, idTramo);
         if (tramo == null) { return false; }
         if (!tramo.getReportes().isEmpty()) { setError("No se puede eliminar un tramo con reportes."); return false; }
-        buscarRuta(idRuta).eliminarTramo(tramo);
+        Ruta ruta = buscarRuta(idRuta);
+        ArrayList<Tramo> propuesta = ruta.getTramos();
+        propuesta.remove(tramo);
+        if (ruta.estaConfirmada() && !validarItinerario(ruta, propuesta)) { return false; }
+        ruta.eliminarTramo(tramo);
         return true;
     }
 
